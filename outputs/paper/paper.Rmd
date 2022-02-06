@@ -1,0 +1,293 @@
+---
+title: "Crime worsened but got slightly better during the pandemic"
+subtitle: "A comprehensive overview of Toronto's crime landscape from 2014 to 2020"
+author: 
+  - Ka Chun Mo 1004764873
+# thanks: "Data is available at: https://open.toronto.ca/dataset/major-crime-indicators/. Code is available at: "
+date: "`r format(Sys.time(), '%d %B %Y')`"
+abstract: "Most Canadians consider Canada to be a safe place to live in. However, they consider Toronto to be less safer than the smalls towns and rural areas in Canada. This paper found that Toronto's crime worsed from 2014 to 2019 but it got slightly better during the pandemic. This report can also act as a guide for individuals and families to learn about the most/least occurred criminal offences and the safest and the least safest neighborhoods in Toronto. "
+output:
+  bookdown::pdf_document2
+toc: FALSE
+bibliography: references.bib
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(palmerpenguins)
+library(haven)
+library(opendatatoronto)
+library(dplyr)
+library(formattable)
+library(kableExtra)
+library(sf)
+library(stringr)
+```
+
+```{r data_setup, include=FALSE}
+#### Load Data ####
+# Get package
+package <- show_package("247788f6-ca20-42e8-b00f-894ac43053e5")
+package
+
+# Get all resources for this package
+resources <- list_package_resources("247788f6-ca20-42e8-b00f-894ac43053e5")
+
+# Load the resources
+data <- filter(resources, row_number()==1) %>% get_resource()
+```
+
+
+# Introduction
+
+In 2019, the Economist Intelligence Unit (EIU) released a Safe Cities Index ranking Toronto the 6th out of 60 cities. [@cite2019SafeCitiesIndex]The EIU ranked the cities by their digital security, health security, infrastructure safety, and personal safety. Most Canadians considered Canada to be a safe place to live in. However, there were regional variations where people who lived in small towns and rurals areas felt safer than people who lived in big cities. In particular, residents who lived in Toronto reported that they felt less safe comparing to those who lived in small towns and rural areas. [@citeCadPerCrime] Canadians think Toronto is more dangerous than the other cities in the rest of the country. In reality, Toronto is actually one of the safest cities in Canada. [@citeTorontoDanger] With the contradiction of Canadians' perception and real-world data of how safe Toronto is, it is crucial that we look more closely to Toronto's safety over the years and explore various aspects of the dangers in Toronto.
+
+In this report, we will dive into the dataset, Major Crime Indicators, from ... to gain a general sense of the criminal offence landscape in Toronto. We will investigate the most/least occurred crime categories in section ... and the locations with the most/least crime occurred. We will also look into crime counts over the years, months, and days of the month in section ... to determine if there is a pattern of the number of criminal offence over time. This report will serve as a high-level overview of the crimes and safety in Toronto.
+
+# Data
+
+## Data Source
+
+This report uses a dataset that includes all Major Crime Indicators (MCI) occurrences reported to the Toronto Police Service in Toronto from the Open Data Toronto Portal. Some of the Major Crime Indicators are Assault, Robbery, Theft, Unlawfully In Dwelling-House. This data is also gathered from the perspective of the victims. One crime occurrence can correspond to multiple rows since multiple incidents or categories can occur in a single occurrence.
+
+## Data Collection & Methodology
+
+This dataset contains all the Major Crime Indicators occurrences that were reported to the Toronto Police services. It includes the MCI occurrences in 140 neighborhoods in Toronto. However, the coordinate fields of some occurrences can be blank since their locations cannot be verified. The dataset also contains some occurrences outside the city of Toronto.
+
+We use R, a Statistical Computing Language, to analyze this dataset [@citeR].
+
+## Data Characteristics
+
+## Key Features
+
+The dataset contains 242879 observation with 28 attributes such as index, offence type, reported year, occurrence year, neighborhood, longitude, and latitude. It includes most crimes including Assault, Robbery, Theft, but it excludes sexual violations. The attributes that we use in this report include offence category, occurrence date, reported date, neighborhoods, etc.. There are some variables that are similar and we will discuss that in section \@ref(discussion).
+
+## Limitations
+
+There are also limitations on this dataset. For instance, the location of the crime occurrences were offset to the nearest road intersection. The Toronto Police Service did this to protect the privacy of the individuals that are involved in the occurrence. Because of this, the numbers by Division and Neighborhood may not reflect the accurate number of occurrences in those regions. Moreover, some crime occurrences do not have a location because the location of the occurrences are unknown. As a result, coordinate fields of those occurrences might be blank. On the other hand, this dataset does not include all the crime occurrences that are in Toronto since Statistics Canada did not include the crime occurrences if the police investigation did not occur or attempted.
+
+# Data Exploration
+
+## Offence categories
+
+Table 1 shows the top 6 most occurred offence categories and the top 6 least occurred offence categories. We can see that "Assault", "B&E" (Breaking and Entering), and "Theft Of Motor Vehicle" are the top 3 most occurred offence categories, whereas "Set/Place Trap/Intend Death/Bh", "Traps Likely Cause Bodily Harm", and "Theft Of Utilities Over" are the top 3 least occurred offence categories. These two tables give us a sense of the most and least frequent offence in Toronto. However, if we examine the offence categories more closely, we can see that some offences (e.g. Assault, B&E) have sub-categories in the dataset. This might lead us to over-estimate or under-estimate the number of offences in each category. We will discuss more about the consequence of this in Section 4.
+
+```{r offence, echo=FALSE, fig.cap="Top 6 most/least Offence Categories", message=FALSE, results='asis', warning=FALSE}
+count_crime <- data |> 
+  group_by(offence) |>
+  count()
+
+count_crime_most <- count_crime[with(count_crime, order(-n)), ] |>
+  select(offence, n) |>
+  st_drop_geometry()
+
+count_crime_most <- rename(count_crime_most, c(Category = offence, Count = n))
+
+count_crime_least <- count_crime[with(count_crime, order(n)), ] |>
+  select(offence, n) |>
+  st_drop_geometry()
+
+count_crime_least <- rename(count_crime_least, c(Category = offence, Count = n))
+
+t1_count_crime_most <- kable(head(count_crime_most), format = "latex", booktabs = TRUE)
+t1_count_crime_least <- kable(head(count_crime_least), format = "latex", booktabs = TRUE)
+
+library(xtable)
+
+cat(c("\\begin{table}[h] \\centering ", 
+      t1_count_crime_most,
+    "\\hspace{1cm} \\centering ",
+      t1_count_crime_least,
+    "\\caption{Top 6 Most/Least Occurred Offence Categories} \\end{table}")) 
+```
+
+## Crime Location
+
+Table 2 shows the top 6 most occurred locations and the top 6 least occurred locations of crime in Toronto. We can see that "Waterfront Communities-The Islan", "Church-Yonge Corridor, and "Bay Street Corridor" are the top 3 most occurred locations, whereas "Lambton Baby Poin", "Yonge-St.Clair", and "Maple Leaf" are the top 3 least occurred offence locations. These two tables give us a sense of the most and least frequent locations of crime in Toronto. If we look up locations on a map, we can see the neighborhoods in downtown Toronto have more crime comparing to other regions in Toronto. In particular, Waterfront communities in Toronto is notorious with surprising incidents. For example, the infamous ice condos have multiple incidents right near the buildings where there are thousands of residents. For individuals or families that place safety as top priority, they can get a sense of where in Toronto would be a safe place to live.
+
+```{r echo=FALSE, message=FALSE, results='asis', warning=FALSE}
+count_crime_location <- data |> 
+  group_by(Neighbourh) |>
+  count()
+  
+count_crime_location <-
+  count_crime_location |>
+  mutate(Location = str_sub(count_crime_location$Neighbourh, end = -6))
+
+count_crime_location_most <- count_crime_location[with(count_crime_location, order(-n)), ] |>
+  select(Location, n) |>
+  st_drop_geometry()
+
+count_crime_location_least <- count_crime_location[with(count_crime_location, order(n)), ] |>
+  select(Location, n) |>
+  st_drop_geometry()
+
+t2_count_crime_location_most <- kable(head(count_crime_location_most), format = "latex", booktabs = TRUE)
+t2_count_crime_location_least <- kable(head(count_crime_location_least), format = "latex", booktabs = TRUE)
+
+library(xtable)
+
+cat(c("\\begin{table}[h] \\centering ", 
+      t2_count_crime_location_most,
+    "\\hspace{1cm} \\centering ",
+      t2_count_crime_location_least,
+    "\\caption{Top 6 Most/Least Occurred Offence Locations} \\end{table}")) 
+```
+
+## Crime Counts
+
+### By Year
+
+From 2014 to 2019, there is a trend of increasing number of offences. However, there is a dip in 2020. 2020 is the first year since 2014 which the number of offences is decreasing. This can due to the COVID-19 pandemic. Since people are more cautious and most people avoid going out in the public during the pandemic, there are less people going out to commit offences.
+
+```{r echo=FALSE, fig.cap='Crime Count By Year', fig.height=2.5}
+count_crime_by_year <- data |> 
+  mutate(year = format(reportedda, "%Y")) |>
+  group_by(year) |>
+  count() |>
+  st_drop_geometry()
+
+count_crime_by_year_ordered <- 
+  count_crime_by_year[with(count_crime_by_year, order(year)), ]
+
+ggplot(count_crime_by_year_ordered, aes(x=year, y=n)) +
+  geom_bar(stat="identity") +
+  xlab('Year') + 
+  ylab('Count') +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+### By Month
+
+From figure , it is difficult to conclude that there is a trend in the number of offences by month. We can see that there seems to be an increasing number of crime from the middle to late months (July to October) of a year.
+
+```{r echo=FALSE, fig.cap='Crime Count By Month', fig.height=2.5}
+count_crime_by_month <- data |> 
+  mutate(month = format(reportedda, "%m")) |>
+  group_by(month) |>
+  count()  |>
+  st_drop_geometry()
+
+count_crime_by_month_ordered <- 
+  count_crime_by_month[with(count_crime_by_month, order(month)), ]
+
+ggplot(count_crime_by_month_ordered, aes(x=month, y=n)) +
+  geom_bar(stat="identity") +
+  xlab('Month') + 
+  ylab('Count') +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+\newpage
+
+### By Day of the Month
+
+The number of offences does not seem to change by the day of the month. We can see that offences seem to occur the most from the 15th - 20th of the month. There are also less offences towards the end of the month (29th - 31st). However, we can tell that this is due to around half of the month do not have a 31st day and February's do not have the 30th and the 31st and some 29th.
+
+```{r echo=FALSE, fig.cap='Crime Count By Day', fig.height=2.5}
+count_crime_by_day <- data |> 
+  group_by(reported_1) |>
+  count()  |>
+  st_drop_geometry()
+
+count_crime_by_day_ordered <- 
+  count_crime_by_day[with(count_crime_by_day, order(reported_1)), ]
+
+ggplot(count_crime_by_day_ordered, aes(x=reported_1, y=n)) +
+  geom_bar(stat="identity") +
+  xlab('Day') + 
+  ylab('Count') +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+## Speed of Reporting offences
+
+The speed of reporting offences can determine how soon polices respond to the situation and how soon the police can start investigation. From 2014 to 2017, the means days between the time of the offence occurred and the time of reporting the offence has shortened throughout the years. However, the mean days started increasing since 2017. There is another increasing trend from 2019 to 2020. Between 2019 to 2020, the increasing mean days can be due to the COVID-19 pandemic with police being less responsive because of the inconvenience COVID-19 brought.
+
+```{r echo=FALSE, message=FALSE, fig.cap='Mean Days between Reported Time and Occurence Time', fig.height=2.5}
+data_diff_reported_occured_mean <-
+  data |>
+  mutate(diff = reportedda - occurrence) |>
+  select(reportedye, diff) |>
+  group_by(reportedye) |>
+  summarise(diff = mean(diff)) |>
+  st_drop_geometry()
+  
+ggplot(data_diff_reported_occured_mean, aes(reportedye, diff)) +
+  geom_line() +
+  xlab('Year') + 
+  ylab('Days') +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+# Discussion
+
+From the analysis above, we have a rough understanding of the major crime in Canada. This section will focus on the limitations identified when doing data exploration and analysis.
+
+## Offence Names
+
+The "offence" offence column shows the offence categories categorized by Toronto Police. Using the column, it gives us a sense of the most and least occurred criminal offences in Toronto. However, we can see that there can be sub-categories for each category. For example, the category "Assault" can have sub-categories "Assault - Force/Thrt/Impede" and "Assault Peace Officer Wpn/Cbh". It can be difficult for the people who analyze the data to deal with this situation because they are not expert of criminal offence and they would not know if it is appropriate to put all these similar categories as one category. It can pose a challenge for the data analyst to consider what to do with these similar categories. In this report, we did not combine these categories together. However, if we want to dive deeper into this attribute, we will have to consult with expert in criminal offence to learn about what to do with these data.
+
+## Data Collection
+
+As mentioned in section \@ref(limitations), the location of the criminal offence were classified to the nearest road intersection. As a result, the division and the neighborhood of each offence might not reflect the actual location where the offence occurred. In addition, the coordinate attributes, 'Long' and 'Lat' can be blank as a result of missing information of the location. Offence data is also not gathered for those that the police investigation never occurred or attempted. Thus, the data does not reflect an accurate picture of the major crimes in Toronto but it does give us a general sense of the criminal offence landscape.
+
+# Conclusion
+
+In conclusion, this paper gave us a general sense of the criminal offence landscape in Toronto from 2014 to 2020. criminal offence has a trend of worsening from 2014 to 2019. However, the number of criminal offences decreased in 2020 which is also the year when the pandemic started. The number of criminal offences does not seem to change much throughout the months of the year and the days of the month. The paper also mentioned the most/least occurred criminal offences and the locations where there are the most/least criminal offences over the years. This can be helpful information to the individuals and families that put safety as their top priorities so they can make well-informed decisions to choose a safe neighborhood to live in. 
+
+# Introduction
+
+You can and should cross-reference sections and sub-sections. For instance, Section \@ref(data). R Markdown automatically makes the sections lower case and adds a dash to spaces to generate labels, for instance.
+
+# Data
+
+Our data is of penguins (Figure \@ref(fig:bills)).
+
+```{r bills, fig.cap="Bills of penguins", echo = FALSE}
+ggplot(penguins, aes(x = island, fill = species)) +
+  geom_bar(alpha = 0.8) +
+  scale_fill_manual(values = c("darkorange","purple","cyan4"),
+                    guide = FALSE) +
+  theme_minimal() +
+  facet_wrap(~species, ncol = 1) +
+  coord_flip()
+```
+
+Talk more about it.
+
+Also bills and their average (Figure \@ref(fig:billssssss)). (Notice how you can change the height and width so they don't take the whole page?)
+
+```{r billssssss, fig.cap="More bills of penguins", echo = FALSE, fig.width=8, fig.height=4}
+
+# This needs to be about the random data tha tI sasmpled?
+ggplot(penguins, aes(x = island, fill = species)) +
+  geom_bar(alpha = 0.8) +
+  scale_fill_manual(values = c("darkorange","purple","cyan4"),
+                    guide = FALSE) +
+  theme_minimal() +
+  facet_wrap(~species, ncol = 1) +
+  coord_flip()
+```
+
+Talk way more about it. 
+
+
+
+# Model
+
+Here's a dumb example of how to use some references: In paper we run our analysis in `R` [@citeR]. We also use the `tidyverse` which was written by @thereferencecanbewhatever If we were interested in baseball data then @citeLahman could be useful. 
+
+We can use maths by including latex between dollar signs, for instance $\theta$.
+
+\newpage
+
+
+# References
+
+R Core Team (2021). R: A language and environment for statistical computing. R Foundation for Statistical Computing, Vienna,
+Austria. URL https://www.R-project.org/.
+
+
