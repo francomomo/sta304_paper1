@@ -1,5 +1,5 @@
 #### Preamble ####
-# Purpose: Load data from Open Data Toronto Portal
+# Purpose: Load data from Open Data Toronto Portal and some Data Exploration
 # Author: Ka Chun Mo 1004764873
 # Data: 6 Febuary 2021
 # Contact: franco.mo@mail.utoronto.ca
@@ -26,12 +26,6 @@ data <- filter(resources, row_number()==1) %>% get_resource()
 data
 
 #### Data Exploration ####
-#
-data |> colnames()
-
-# 
-unique_offence <- unique(data$offence)
-length(unique_offence)
 
 # Count crime by year 
 count_crime_by_year <- data |> 
