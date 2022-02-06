@@ -5,7 +5,7 @@ author:
   - Ka Chun Mo 1004764873
 # thanks: "Data is available at: https://open.toronto.ca/dataset/major-crime-indicators/. Code is available at: https://github.com/francomomo/sta304_paper1"
 date: "`r format(Sys.time(), '%d %B %Y')`"
-abstract: "Most Canadians consider Canada to be a safe place to live in. However, they consider Toronto to be less safer than the smalls towns and rural areas in Canada. In this paper, we conducted analysis to investigate the Major Crimes in Toronto from 2014 to 2019 to learn about the criminal offence landscape. We found that Toronto's crime worsed from 2014 to 2019 but it got slightly better during the pandemic. This report can also act as a guide for individuals and families to learn about the most/least occurred criminal offences and the safest and the least safest neighborhoods in Toronto. "
+abstract: "Most Canadians consider Canada to be a safe place to live in, but they consider Toronto to be less safer than the smalls towns and rural areas in Canada. In this paper, we conducted analysis to investigate the Major Crimes in Toronto from 2014 to 2019 to learn about the criminal offence landscape. We found that Toronto's crime worsed from 2014 to 2019 but it got slightly better during the pandemic. This report can also act as a guide for individuals and families to learn about the most/least occurred criminal offences and the safest and the least safest neighborhoods in Toronto. "
 output:
   bookdown::pdf_document2
 toc: FALSE
@@ -52,7 +52,7 @@ This report uses a dataset that includes all Major Crime Indicators (MCI) occurr
 
 This dataset contains all the Major Crime Indicators occurrences that were reported to the Toronto Police services. It includes the MCI occurrences in 140 neighborhoods in Toronto. However, the coordinate fields of some occurrences can be blank since their locations cannot be verified. The dataset also contains some occurrences outside the city of Toronto.
 
-We use R, a Statistical Computing Language, to analyze this dataset [@citeR]. We use tidyverse for data manipulation [@citeTidyverse], sf for manipulation of spatial vector data [@citeSF], xtable for exporting tables to Latex [@citeXtable], kableExtra for constructing tables [@citeKable].
+We use R, a Statistical Computing Language, to analyze this dataset [@citeR]. We use tidyverse for data manipulation [@citeTidyverse], sf for manipulation of spatial vector data [@citeSF], xtable for exporting tables to Latex [@citeXtable], kableExtra for constructing tables [@citeKable]. Graphs are made with ggplot2 [@citeGgplot2]. 
 
 ## Data Characteristics
 
